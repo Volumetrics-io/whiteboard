@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>MR.js</title>
+    <meta name="description" content="MR.js example">
+    <script src="https://cdn.jsdelivr.net/gh/volumetrics-io/mrjs@latest/dist/build.js"></script>
+    <link rel="stylesheet" type="text/css" href="./style.css" />
+
+  </head>
+  <body >
+    <mr-app camera="camera: orthographic">
+      <mr-surface>
+        <mr-container>
+          <mr-column>
+            <mr-whiteboard id="board"></mr-whiteboard>
+            <mr-row height="10%">
+                <mr-entity ></mr-entity>
+              <!--markers-->
+              <mr-entity margin="0.01 0 0 0" width="40%">
+                <mr-row>
+                    <mr-panel margin="0 0.03" color="black"></mr-panel>
+                    <mr-panel margin="0 0.03" color="red"></mr-panel>
+                    <mr-panel margin="0 0.03" color="blue"></mr-panel>
+                    <!--eraser-->
+                    <mr-panel margin="0 0.03" id="eraser" color="#E7B9B3"></mr-panel>
+                </mr-row>
+              </mr-entity>
+              <mr-entity ></mr-entity>
+            </mr-row>
+          </mr-column>
+        </mr-container>
+      </mr-surface> 
+    </mr-app>
+  </body>
+
+  <footer>
+    <script>
+
+      let color = '#000000'
+      let strokeWidth = 5
+
+      let panels = document.querySelectorAll('mr-panel')
+
+      for(const panel of panels) {
+        panel.addEventListener('click', (event) => {
+            if(event.target.id == 'eraser') {
+                color = "#ffffff"
+                strokeWidth = 50
+            } else {
+                color = event.target.color
+                strokeWidth = 5
+            }
+        })
+
+        panel.onHover = (event) => {
+          switch (event.type) {
+            case 'hover-start':
+              panel.object3D.scale.addScalar(0.1)
+              break;
+
+            case 'hover-end':
+              panel.object3D.scale.subScalar(0.1)
+              break;
+          
+            default:
+              break;
+          }
+        }
+      }
+
+
+      class Whiteboard extends Panel {
+        set absoluteHeight(value) {
+            super.absoluteHeight = value
+            this.resizeCanvas()
+            
+        }
+        get absoluteHeight() {
+            return super.absoluteHeight
+        }
+        set absoluteWidth(value) {
+            super.absoluteWidth = value
+            this.resizeCanvas()
+        }
+        get absoluteWidth() {
+            return super.absoluteWidth
+        }
+        constructor(){
+            super()
+
+            this.resolution = 1080
+
+            this.canvas = document.createElement('canvas')
+
+            document.querySelector('mr-app').appendChild(this.canvas)
+
+            this.canvas.width = this.width * this.resolution
+            this.canvas.height = this.height * this.resolution
+            this.context = this.canvas.getContext('2d')
+
+            this.canvasScale = new THREE.Vector3(this.canvas.width, this.canvas.height, 1)
+
+            this.drawPosition = new THREE.Vector3()
+            this.drawStartPosition = new THREE.Vector3();
+
+            this.context.fillStyle = '#FFFFFF';
+            this.context.lineWidth = 5;
+            this.context.lineCap = 'round'
+            this.context.lineJoin = 'round'
+            this.context.fillRect( 0, 0, this.canvas.width, this.canvas.height );
+
+            this.canvasTexture = new THREE.CanvasTexture(this.canvas)
+            this.object3D.material.map = this.canvasTexture
+
+            this.addEventListener('touch-start', (event) => {
+                this.context.beginPath();
+                this.drawStartPosition.copy(event.detail.position)
+                this.getCanvasPosition(this.drawStartPosition)
+            })
+
+            this.addEventListener('touch', (event) => {
+                this.drawPosition.copy(event.detail.position)
+                this.getCanvasPosition(this.drawPosition)
+                this.draw()
+                
+            })
+        }
+
+        resizeCanvas() {
+            this.canvas.width = this.absoluteWidth * this.resolution
+            this.canvas.height = this.absoluteHeight * this.resolution
+
+            console.log('width', this.canvas.width);
+            console.log('height', this.canvas.height);
+
+            this.context.fillStyle = '#FFFFFF';
+            this.context.lineWidth = 5;
+            this.context.lineCap = 'round'
+            this.context.lineJoin = 'round'
+            this.context.fillRect( 0, 0, this.canvas.width, this.canvas.height );
+
+            this.canvasTexture = new THREE.CanvasTexture(this.canvas)
+            this.object3D.material.map = this.canvasTexture
+
+            this.canvasScale.setX(this.canvas.width)
+            this.canvasScale.setY(this.canvas.height)
+        }
+
+        getCanvasPosition(position) {
+            this.object3D.worldToLocal(this.drawPosition)
+            position.setX(position.x + (this.absoluteWidth / 2))
+            position.setY((this.absoluteHeight / 2) - position.y)
+            position.multiplyScalar(this.resolution)
+        }
+
+        draw() {
+            this.context.moveTo( this.drawStartPosition.x , this.drawStartPosition.y);
+            this.context.strokeStyle = color;
+            this.context.lineWidth = strokeWidth;
+            this.context.lineTo( this.drawPosition.x, this.drawPosition.y );
+            this.context.stroke();
+            // reset drawing start position to current position.
+            this.drawStartPosition.set( this.drawPosition );
+            // need to flag the map as needing updating.
+            this.object3D.material.map.needsUpdate = true;
+
+        }
+      }
+
+      customElements.get('mr-whiteboard') || customElements.define('mr-whiteboard', Whiteboard)
+    </script>
+  </footer>
+</html>
