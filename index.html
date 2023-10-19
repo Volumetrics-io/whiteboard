@@ -2,33 +2,46 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>MR.js</title>
-    <meta name="description" content="MR.js example">
+    <title>MR.js whiteboard</title>
+    <meta name="description" content="MR.js whiteboard">
     <script src="https://cdn.jsdelivr.net/gh/volumetrics-io/mrjs@latest/dist/build.js"></script>
     <link rel="stylesheet" type="text/css" href="./style.css" />
+
+    <style>
+        html {
+          overflow: hidden;
+          overscroll-behavior: none;
+          -webkit-user-select: none; /* Safari */
+          -ms-user-select: none; /* IE 10 and IE 11 */
+          user-select: none; /* Standard syntax */
+        }
+        </style>
+        
 
   </head>
   <body >
     <mr-app camera="camera: orthographic">
       <mr-surface>
         <mr-container>
-          <mr-column>
-            <mr-whiteboard id="board"></mr-whiteboard>
-            <mr-row height="10%">
-                <mr-entity ></mr-entity>
-              <!--markers-->
-              <mr-entity margin="0.01 0 0 0" width="40%">
-                <mr-row>
-                    <mr-panel margin="0 0.03" color="black"></mr-panel>
-                    <mr-panel margin="0 0.03" color="red"></mr-panel>
-                    <mr-panel margin="0 0.03" color="blue"></mr-panel>
-                    <!--eraser-->
-                    <mr-panel margin="0 0.03" id="eraser" color="#E7B9B3"></mr-panel>
-                </mr-row>
-              </mr-entity>
-              <mr-entity ></mr-entity>
-            </mr-row>
-          </mr-column>
+            <mr-column>
+              <mr-whiteboard id="board"></mr-whiteboard>
+                <!--markers-->
+                    <mr-row height ="0.2" width="3">
+  
+                      <mr-button color="black"></mr-button>
+                      <mr-button color="red"></mr-button>
+                      <mr-button color="blue"></mr-button>
+                      <mr-button color="green"></mr-button>
+                      <mr-button color="yellow"></mr-button>
+                      <mr-button color="purple"></mr-button>
+                      <mr-button color="brown"></mr-button>
+                      <mr-button color="orange"></mr-button>
+                      <mr-button color="magenta"></mr-button>
+                      <mr-button color="darkred"></mr-button>
+                      <mr-button id="eraser" color="white"></mr-button>
+                    </mr-row>
+            </mr-column>
+          
         </mr-container>
       </mr-surface> 
     </mr-app>
@@ -40,10 +53,10 @@
       let color = '#000000'
       let strokeWidth = 5
 
-      let panels = document.querySelectorAll('mr-panel')
+      let buttons = document.querySelectorAll('mr-button')
 
-      for(const panel of panels) {
-        panel.addEventListener('click', (event) => {
+      for(const button of buttons) {
+        button.addEventListener('click', (event) => {
             if(event.target.id == 'eraser') {
                 color = "#ffffff"
                 strokeWidth = 50
@@ -52,21 +65,6 @@
                 strokeWidth = 5
             }
         })
-
-        panel.onHover = (event) => {
-          switch (event.type) {
-            case 'hover-start':
-              panel.object3D.scale.addScalar(0.1)
-              break;
-
-            case 'hover-end':
-              panel.object3D.scale.subScalar(0.1)
-              break;
-          
-            default:
-              break;
-          }
-        }
       }
 
 
@@ -113,6 +111,8 @@
             this.canvasTexture = new THREE.CanvasTexture(this.canvas)
             this.object3D.material.map = this.canvasTexture
 
+            this.zOffeset = 0.005
+
             this.addEventListener('touch-start', (event) => {
                 this.context.beginPath();
                 this.drawStartPosition.copy(event.detail.position)
@@ -120,6 +120,7 @@
             })
 
             this.addEventListener('touch', (event) => {
+              console.log('touch');
                 this.drawPosition.copy(event.detail.position)
                 this.getCanvasPosition(this.drawPosition)
                 this.draw()
@@ -148,7 +149,6 @@
         }
 
         getCanvasPosition(position) {
-            this.object3D.worldToLocal(this.drawPosition)
             position.setX(position.x + (this.absoluteWidth / 2))
             position.setY((this.absoluteHeight / 2) - position.y)
             position.multiplyScalar(this.resolution)
